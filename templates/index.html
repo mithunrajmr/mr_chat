@@ -169,7 +169,6 @@
             if (currentAiMessageElement) {
                 accumulatedResponse += token;
                 currentAiMessageElement.children[1].innerHTML = marked.parse(accumulatedResponse + '█');
-                scrollToBottom();
             }
         });
 
@@ -198,6 +197,7 @@
             enableInputs();
         });
         
+        // --- UPDATED: Reversed chat logic (new messages at top) ---
         function addMessageToUI(sender, text) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + (sender === 'You' ? 'user' : 'ai');
@@ -208,26 +208,13 @@
             textSpan.textContent = text;
             messageDiv.appendChild(labelSpan);
             messageDiv.appendChild(textSpan);
-            conversationDiv.appendChild(messageDiv);
-            scrollToBottom();
+            conversationDiv.prepend(messageDiv); // Use prepend to add to the top
+            conversationDiv.scrollTop = 0; // Scroll to the top
             return messageDiv;
-        }
-        
-        function scrollToBottom() {
-            const shouldScroll = conversationDiv.scrollHeight - conversationDiv.clientHeight <= conversationDiv.scrollTop + 100;
-            if (shouldScroll) {
-                conversationDiv.scrollTop = conversationDiv.scrollHeight;
-            }
         }
 
         function disableInputs() { textInput.disabled = true; formButton.disabled = true; }
-
-        // --- THIS IS THE ONLY CHANGE ---
-        function enableInputs() {
-            textInput.disabled = false;
-            formButton.disabled = false;
-            // The textInput.focus(); line has been removed.
-        }
+        function enableInputs() { textInput.disabled = false; formButton.disabled = false; }
     </script>
 </body>
 </html>
