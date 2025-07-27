@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interview Assistant</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+
+    <style>
+        html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; }
+        .dashboard-container { display: flex; height: 100vh; width: 100%; }
+        
+        .chat-panel {
+            flex: 0 0 65%;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            border-right: 1px solid #ddd;
+            height: 100%;
+            max-height: 100vh;
+        }
+        .chat-panel h1 {
+            color: #4a4a4a; text-align: center; padding: 1rem; margin: 0;
+            flex-shrink: 0;
+        }
+        .conversation {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            min-height: 0; 
+        }
+        .chat-footer {
+            flex-shrink: 0;
+            border-top: 1px solid #eee;
+            background: #fff;
+        }
+
+        .code-panel { flex: 0 0 35%; display: flex; flex-direction: column; background-color: #282c34; color: #abb2bf; }
+        .code-panel h2 { color: #fff; text-align: center; padding: 1rem; margin: 0; border-bottom: 1px solid #3b4048; font-size: 1.2rem; }
+        .code-panel pre { flex-grow: 1; margin: 0; padding: 1.5rem; white-space: pre-wrap; word-wrap: break-word; overflow-y: auto; }
+        .code-panel code { font-family: 'Courier New', Courier, monospace; font-size: 1rem; }
+        .message { padding: 1rem; border-radius: 8px; line-height: 1.6; max-width: 90%; word-wrap: break-word; }
+        .user { background-color: #dcf8c6; align-self: flex-end; }
+        .ai { background-color: #f1f0f0; align-self: flex-start; }
+        .ai pre { background-color: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 5px; }
+        .label { font-weight: bold; margin-bottom: 0.5rem; display: block; }
+        #text-input-form { display: flex; gap: 10px; padding: 1rem; }
+        #text-input { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; }
+        #text-input-form button { background-color: #007bff; color: white; border: none; padding: 0 20px; font-size: 16px; border-radius: 5px; cursor: pointer; }
+        .audio-controls { text-align: center; padding: 0.5rem 1rem; background: #fafafa; border-bottom: 1px solid #eee; }
+        .audio-controls button { font-size: 14px; padding: 8px 16px; }
+        .audio-controls button:disabled, #text-input-form button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #stopBtn { background-color: #dc3545; }
+        #status { font-size: 0.9rem; color: #666; margin-top: 8px; }
+        #status.listening { color: #28a745; font-weight: bold; }
+
+        @media (max-width: 768px) {
+            .dashboard-container { flex-direction: column; }
+            .chat-panel { flex-grow: 1; width: 100%; border-right: none; }
+            .code-panel { display: none; }
+            .audio-controls { padding: 0.25rem; }
+            .audio-controls button { padding: 6px 12px; font-size: 12px; }
+            #text-input-form { padding: 0.5rem; gap: 0.5rem; }
+            #text-input { padding: 10px; font-size: 14px; }
+            h1 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="chat-panel">
+            <h1>AI Interview Assistant</h1>
+            <div class="conversation" id="conversation"></div>
+            <div class="chat-footer">
+                <div class="audio-controls">
+                    <button id="startBtn">Start Listening</button>
+                    <button id="stopBtn" disabled>Stop Listening</button>
+                    <div id="status">Voice input is off.</div>
+                </div>
+                <form id="text-input-form">
+                    <input type="text" id="text-input" placeholder="Type your question..." autocomplete="off">
+                    <button type="submit">Send</button>
+                </form>
+            </div>
+        </div>
+        <div class="code-panel">
+            <h2>Code Viewer</h2>
+            <pre><code id="code-viewer" class="language-plaintext"># Code will appear here...</code></pre>
+        </div>
+    </div>
+    
+    <script>
+        const socket = io();
+        const conversationDiv = document.getElementById('conversation');
+        const textInputForm = document.getElementById('text-input-form');
+        const textInput = document.getElementById('text-input');
+        const formButton = textInputForm.querySelector('button');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusDiv = document.getElementById('status');
+        const codeViewer = document.getElementById('code-viewer');
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        let isListening = false;
+        let currentAiMessageElement = null;
+        let accumulatedResponse = '';
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true; recognition.interimResults = true;
+            recognition.onstart = () => { isListening = true; statusDiv.textContent = 'Listening...'; statusDiv.classList.add('listening'); startBtn.disabled = true; stopBtn.disabled = false; };
+            recognition.onend = () => { if (isListening) { setTimeout(() => { try { recognition.start(); } catch(e) { console.error("Error restarting recognition:", e); } }, 250); } else { statusDiv.textContent = 'Voice input is off.'; statusDiv.classList.remove('listening'); startBtn.disabled = false; stopBtn.disabled = true; } };
+            recognition.onerror = (event) => { console.error("Speech Recognition Error:", event.error); if(event.error !== 'no-speech') statusDiv.textContent = `Error: ${event.error}`; };
+            recognition.onresult = (event) => { let finalTranscript = ''; for (let i = event.resultIndex; i < event.results.length; ++i) { if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript; } if (finalTranscript.trim()) sendMessageToServer(finalTranscript); };
+        } else { document.querySelector('.audio-controls').innerHTML = '<p>Voice recognition not supported.</p>'; }
+        
+        startBtn.addEventListener('click', () => { if(recognition){ isListening = true; recognition.start(); } });
+        stopBtn.addEventListener('click', () => { if(recognition){ isListening = false; recognition.stop(); } });
+        textInputForm.addEventListener('submit', (e) => { e.preventDefault(); const text = textInput.value; if (text.trim() && !formButton.disabled) { sendMessageToServer(text); textInput.value = ''; } });
+        
+        function sendMessageToServer(text) {
+            disableInputs();
+            addMessageToUI('You', text);
+            socket.emit('user_sends_message', { transcript: text });
+        }
+        
+        socket.on('connect', () => socket.emit('start_session'));
+
+        socket.on('ai_stream_start', () => {
+            disableInputs();
+            accumulatedResponse = '';
+            codeViewer.textContent = '# Code will appear here...';
+            hljs.highlightElement(codeViewer);
+            currentAiMessageElement = addMessageToUI('Mithun (AI)', '');
+        });
+
+        socket.on('ai_stream', (token) => {
+            if (currentAiMessageElement) {
+                accumulatedResponse += token;
+                currentAiMessageElement.children[1].innerHTML = marked.parse(accumulatedResponse + '█');
+            }
+        });
+
+        socket.on('ai_stream_end', () => {
+            if (currentAiMessageElement) {
+                const textSpan = currentAiMessageElement.children[1];
+                
+                // --- THIS IS THE FINAL FIX FOR MOBILE CODE ---
+                // First, always render the full response in the main chat.
+                // This ensures code is NEVER trimmed on mobile.
+                textSpan.innerHTML = marked.parse(accumulatedResponse);
+                textSpan.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+
+                // THEN, check if we are on desktop and have code.
+                const codeViewerIsVisible = window.getComputedStyle(codeViewer.parentElement).display !== 'none';
+                const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/;
+                const match = accumulatedResponse.match(codeBlockRegex);
+
+                if (match && codeViewerIsVisible) {
+                    // If we are on desktop, ALSO populate the code viewer.
+                    const language = match[1] || 'plaintext';
+                    const code = match[2].trim();
+                    codeViewer.textContent = code;
+                    codeViewer.className = `language-${language}`;
+                    hljs.highlightElement(codeViewer);
+                }
+            }
+            enableInputs();
+        });
+        
+        socket.on('ai_is_busy', () => enableInputs());
+        
+        function addMessageToUI(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (sender === 'You' ? 'user' : 'ai');
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'label';
+            labelSpan.textContent = sender + ':';
+            const textSpan = document.createElement('span');
+            textSpan.textContent = text;
+            messageDiv.appendChild(labelSpan);
+            messageDiv.appendChild(textSpan);
+            conversationDiv.prepend(messageDiv);
+            conversationDiv.scrollTop = 0;
+            return messageDiv;
+        }
+
+        function disableInputs() { textInput.disabled = true; formButton.disabled = true; }
+        function enableInputs() { textInput.disabled = false; formButton.disabled = false; textInput.focus(); }
+    </script>
+</body>
+</html>

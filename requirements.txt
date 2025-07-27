@@ -1,0 +1,6 @@
+Flask
+Flask-SocketIO
+langchain-groq
+python-dotenv
+gunicorn
+eventlet
