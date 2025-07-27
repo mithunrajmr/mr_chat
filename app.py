@@ -9,7 +9,12 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'a-very-secret-key-for-sessions'
-socketio = SocketIO(app, cors_allowed_origins="*")
+
+# --- THIS IS THE CRITICAL FIX ---
+# We must explicitly allow cross-origin requests and set the async mode
+# for the application to work correctly when deployed on Render.
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+# --------------------------------
 
 # --- AI PERSONA AND PROMPT CONFIG ---
 resume_summary = """
@@ -23,7 +28,7 @@ You are Mithun Raj M R, a software developer. Your task is to answer interview q
 - NEVER say "As Mithun" or "Here is my response". You ARE Mithun.
 - Keep answers professional, confident, and concise (2-4 sentences).
 - When asked for code, present it naturally. For example: "Certainly. I would solve that using the Euclidean algorithm. Here's how I'd write it:"
-- **Always generate code in Python unless the user explicitly asks for a different language.**
+- Always generate code in Python unless the user explicitly asks for a different language.
 - Base all technical and project-related answers on the summary below.
 
 **Conversation History (most recent turns):**
@@ -39,7 +44,6 @@ model = ChatGroq(model_name="llama3-8b-8192", temperature=0.7)
 # --- State Management ---
 user_contexts = {}
 user_busy_state = {}
-
 
 # --- SOCKET.IO EVENT HANDLERS ---
 @socketio.on('connect')
@@ -110,5 +114,6 @@ def index():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    print("Starting Flask-SocketIO server with Groq...")
-    socketio.run(app, host='127.0.0.1', port=5000, debug=True, use_reloader=False)
+    print("Starting Flask-SocketIO server for local development...")
+    # This command is for running on your local machine
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=False)
