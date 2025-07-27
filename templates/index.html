@@ -96,7 +96,10 @@
         </div>
     </div>
 
-    <div id="code-overlay" class="hidden"></div>
+    <div id="code-overlay" class="hidden">
+        <button id="close-overlay-btn">&times;</button>
+        <pre><code id="overlay-code-content" class="language-plaintext"></code></pre>
+    </div>
 
     <script>
         const socket = io({ transports: ['websocket'] });
@@ -143,12 +146,14 @@
                         interimTranscript += transcript;
                     }
                 }
+
                 statusDiv.textContent = interimTranscript || 'Listening...';
+                
                 debounceTimer = setTimeout(() => {
                     if (finalTranscript.trim()) {
                         sendMessageToServer(finalTranscript.trim());
                     }
-                }, 400);
+                }, 400); 
             };
         } else {
             document.querySelector('.audio-controls').innerHTML = '<p>Voice recognition not supported.</p>';
@@ -163,9 +168,25 @@
             disableInputs();
             addMessageToUI('You', text);
             socket.emit('user_sends_message', { transcript: text });
-            textInput.blur(); // Hide keyboard
+            textInput.blur(); 
         }
         
+        // --- REVERSED CHAT LOGIC ---
+        function addMessageToUI(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (sender === 'You' ? 'user' : 'ai');
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'label';
+            labelSpan.textContent = sender + ':';
+            const textSpan = document.createElement('span');
+            textSpan.textContent = text;
+            messageDiv.appendChild(labelSpan);
+            messageDiv.appendChild(textSpan);
+            conversationDiv.prepend(messageDiv);
+            conversationDiv.scrollTop = 0;
+            return messageDiv;
+        }
+
         socket.on('connect', () => socket.emit('start_session'));
 
         socket.on('ai_stream_start', () => {
@@ -183,6 +204,7 @@
             }
         });
 
+        // --- MOBILE CODE HANDLING LOGIC ---
         socket.on('ai_stream_end', () => {
             if (currentAiMessageElement) {
                 const textSpan = currentAiMessageElement.children[1];
@@ -222,23 +244,8 @@
         
         socket.on('ai_is_busy', () => enableInputs());
 
-        // --- REVERSED CHAT LOGIC RESTORED ---
-        function addMessageToUI(sender, text) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message ' + (sender === 'You' ? 'user' : 'ai');
-            const labelSpan = document.createElement('span');
-            labelSpan.className = 'label';
-            labelSpan.textContent = sender + ':';
-            const textSpan = document.createElement('span');
-            textSpan.textContent = text;
-            messageDiv.appendChild(labelSpan);
-            messageDiv.appendChild(textSpan);
-            conversationDiv.prepend(messageDiv);
-            conversationDiv.scrollTop = 0;
-            return messageDiv;
-        }
-
         function disableInputs() { textInput.disabled = true; formButton.disabled = true; }
+        
         // --- NO AUTOMATIC KEYBOARD FOCUS ---
         function enableInputs() {
             textInput.disabled = false;
