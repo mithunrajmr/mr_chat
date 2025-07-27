@@ -33,8 +33,7 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            /* CRITICAL FIX: This prevents content from being trimmed */
-            min-height: 0;
+            min-height: 0; /* Critical fix for content trimming */
         }
         .chat-footer {
             flex-shrink: 0;
@@ -118,26 +117,38 @@
         let currentAiMessageElement = null;
         let accumulatedResponse = '';
 
+        // --- ROBUST SPEECH RECOGNITION (NO DUPLICATES) ---
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
             recognition.continuous = true;
             recognition.interimResults = true;
             
-            let finalTranscriptDebounce;
+            let finalTranscript = '';
+            let debounceTimer;
+
             recognition.onstart = () => { isListening = true; statusDiv.textContent = 'Listening...'; statusDiv.classList.add('listening'); startBtn.disabled = true; stopBtn.disabled = false; };
             recognition.onend = () => { if (isListening) { setTimeout(() => { try { recognition.start(); } catch(e) {} }, 250); } else { statusDiv.textContent = 'Voice input is off.'; statusDiv.classList.remove('listening'); startBtn.disabled = false; stopBtn.disabled = true; } };
             recognition.onerror = (event) => { console.error("Speech Recognition Error:", event.error); if(event.error !== 'no-speech') statusDiv.textContent = `Error: ${event.error}`; };
+            
             recognition.onresult = (event) => {
-                clearTimeout(finalTranscriptDebounce);
-                let finalTranscript = '';
+                clearTimeout(debounceTimer);
+                let interimTranscript = '';
+                finalTranscript = '';
+
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
                     }
                 }
-                if (finalTranscript.trim()) {
-                    sendMessageToServer(finalTranscript.trim());
-                }
+                statusDiv.textContent = interimTranscript || 'Listening...';
+                debounceTimer = setTimeout(() => {
+                    if (finalTranscript.trim()) {
+                        sendMessageToServer(finalTranscript.trim());
+                    }
+                }, 400);
             };
         } else {
             document.querySelector('.audio-controls').innerHTML = '<p>Voice recognition not supported.</p>';
@@ -152,6 +163,7 @@
             disableInputs();
             addMessageToUI('You', text);
             socket.emit('user_sends_message', { transcript: text });
+            textInput.blur(); // Hide keyboard
         }
         
         socket.on('connect', () => socket.emit('start_session'));
@@ -182,6 +194,7 @@
                     const language = match[1] || 'plaintext';
                     const code = match[2].trim();
                     const explanation = accumulatedResponse.replace(match[0], '').trim();
+                    
                     if (codeViewerIsVisible) {
                         textSpan.innerHTML = marked.parse(explanation);
                         codeViewer.textContent = code;
@@ -220,18 +233,16 @@
             textSpan.textContent = text;
             messageDiv.appendChild(labelSpan);
             messageDiv.appendChild(textSpan);
-            // Add new messages to the top
             conversationDiv.prepend(messageDiv);
-            // Scroll to the top
             conversationDiv.scrollTop = 0;
             return messageDiv;
         }
 
         function disableInputs() { textInput.disabled = true; formButton.disabled = true; }
+        // --- NO AUTOMATIC KEYBOARD FOCUS ---
         function enableInputs() {
             textInput.disabled = false;
             formButton.disabled = false;
-            textInput.focus(); // Restore focus for better desktop UX
         }
     </script>
 </body>
