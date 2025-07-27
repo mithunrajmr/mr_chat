@@ -1,3 +1,7 @@
+import eventlet
+eventlet.monkey_patch()
+# --------------------------------
+
 import os
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO
@@ -9,12 +13,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'a-very-secret-key-for-sessions'
-
-# --- THIS IS THE CRITICAL FIX ---
-# We must explicitly allow cross-origin requests and set the async mode
-# for the application to work correctly when deployed on Render.
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
-# --------------------------------
 
 # --- AI PERSONA AND PROMPT CONFIG ---
 resume_summary = """
@@ -44,6 +43,10 @@ model = ChatGroq(model_name="llama3-8b-8192", temperature=0.7)
 # --- State Management ---
 user_contexts = {}
 user_busy_state = {}
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 # --- SOCKET.IO EVENT HANDLERS ---
 @socketio.on('connect')
@@ -108,12 +111,7 @@ def stream_ai_response(user_question, sid):
         user_busy_state[sid] = False
         print(f"Session lock released for {sid}")
 
-# --- FLASK ROUTE AND MAIN EXECUTION ---
-@app.route('/')
-def index():
-    return render_template('index.html')
-
+# --- MAIN EXECUTION ---
 if __name__ == '__main__':
     print("Starting Flask-SocketIO server for local development...")
-    # This command is for running on your local machine
     socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=False)
