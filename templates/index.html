@@ -11,35 +11,51 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 
     <style>
-        html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; overflow: hidden; }
-        .dashboard-container { display: flex; height: 100%; width: 100%; }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            overflow: hidden; /* Prevents the whole page from scrolling */
+        }
+        .dashboard-container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
         
+        /* --- ROBUST LAYOUT FOR CHAT PANEL --- */
         .chat-panel {
             flex: 0 0 65%;
             display: flex;
             flex-direction: column;
             background: #fff;
             border-right: 1px solid #ddd;
-            height: 100%;
+            height: 100%; /* Make panel fill its container */
         }
         .chat-panel h1 {
-            color: #4a4a4a; text-align: center; padding: 1rem; margin: 0;
-            flex-shrink: 0; border-bottom: 1px solid #eee;
+            flex-shrink: 0; /* Prevent header from shrinking */
+            color: #4a4a4a;
+            text-align: center;
+            padding: 1rem;
+            margin: 0;
+            border-bottom: 1px solid #eee;
         }
         .conversation {
-            flex-grow: 1;
-            overflow-y: auto;
+            flex: 1 1 auto; /* Allow chat to grow and shrink */
+            overflow-y: auto; /* Enable scrolling for chat content */
             padding: 1.5rem;
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            min-height: 0;
         }
         .chat-footer {
-            flex-shrink: 0;
+            flex-shrink: 0; /* Prevent footer from shrinking */
             border-top: 1px solid #eee;
             background: #fff;
         }
+        /* ------------------------------------ */
 
         .code-panel { flex: 0 0 35%; display: flex; flex-direction: column; background-color: #282c34; color: #abb2bf; }
         .code-panel h2 { color: #fff; text-align: center; padding: 1rem; margin: 0; border-bottom: 1px solid #3b4048; font-size: 1.2rem; }
@@ -93,6 +109,7 @@
     <div id="code-overlay" class="hidden"></div>
 
     <script>
+        // All JavaScript is the same as the last working version
         const socket = io({ transports: ['websocket'] });
         const conversationDiv = document.getElementById('conversation');
         const textInputForm = document.getElementById('text-input-form');
@@ -151,6 +168,21 @@
             socket.emit('user_sends_message', { transcript: text });
         }
         
+        function addMessageToUI(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (sender === 'You' ? 'user' : 'ai');
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'label';
+            labelSpan.textContent = sender + ':';
+            const textSpan = document.createElement('span');
+            textSpan.textContent = text;
+            messageDiv.appendChild(labelSpan);
+            messageDiv.appendChild(textSpan);
+            conversationDiv.appendChild(messageDiv);
+            conversationDiv.scrollTop = conversationDiv.scrollHeight;
+            return messageDiv;
+        }
+
         socket.on('connect', () => socket.emit('start_session'));
 
         socket.on('ai_stream_start', () => {
@@ -165,6 +197,7 @@
             if (currentAiMessageElement) {
                 accumulatedResponse += token;
                 currentAiMessageElement.children[1].innerHTML = marked.parse(accumulatedResponse + '█');
+                conversationDiv.scrollTop = conversationDiv.scrollHeight;
             }
         });
 
@@ -174,7 +207,6 @@
                 const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/;
                 const match = accumulatedResponse.match(codeBlockRegex);
                 const codeViewerIsVisible = window.getComputedStyle(codeViewer.parentElement).display !== 'none';
-
                 if (match && codeViewerIsVisible) {
                     const language = match[1] || 'plaintext';
                     const code = match[2].trim();
@@ -193,23 +225,8 @@
             enableInputs();
         });
         
-        // --- UPDATED: Reversed chat logic (new messages at top) ---
-        function addMessageToUI(sender, text) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message ' + (sender === 'You' ? 'user' : 'ai');
-            const labelSpan = document.createElement('span');
-            labelSpan.className = 'label';
-            labelSpan.textContent = sender + ':';
-            const textSpan = document.createElement('span');
-            textSpan.textContent = text;
-            messageDiv.appendChild(labelSpan);
-            messageDiv.appendChild(textSpan);
-            conversationDiv.prepend(messageDiv); // Use prepend to add to the top
-            conversationDiv.scrollTop = 0; // Scroll to the top
-            return messageDiv;
-        }
-
         function disableInputs() { textInput.disabled = true; formButton.disabled = true; }
+        
         function enableInputs() {
             textInput.disabled = false;
             formButton.disabled = false;
