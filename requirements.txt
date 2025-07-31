@@ -4,3 +4,4 @@ langchain-groq
 python-dotenv
 gunicorn
 eventlet
+httpx==0.27.0

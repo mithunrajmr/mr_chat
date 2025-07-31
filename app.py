@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 import os
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO
@@ -9,9 +12,9 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'a-very-secret-key-for-sessions'
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# --- UPDATED AI PERSONA AND PROMPT CONFIG ---
+# --- AI PERSONA AND PROMPT CONFIG ---
 resume_summary = """
 Mithun Raj M R, aspiring software developer. Proficient in Python, Flask, React, MySQL, ML (ASL detection), 
 internships at AuMDS (led full-stack projects), Varcons (web dev), and strong problem-solving skills.
@@ -39,6 +42,10 @@ model = ChatGroq(model_name="llama3-8b-8192", temperature=0.7)
 # --- State Management ---
 user_contexts = {}
 user_busy_state = {}
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 # --- SOCKET.IO EVENT HANDLERS ---
 @socketio.on('connect')
@@ -93,7 +100,6 @@ def stream_ai_response(user_question, sid):
             
         history.append((user_question, full_ai_response))
         user_contexts[sid] = history[-5:]
-
         print(f"[AI] Full response generated for {sid}")
 
     except Exception as e:
@@ -103,11 +109,7 @@ def stream_ai_response(user_question, sid):
         user_busy_state[sid] = False
         print(f"Session lock released for {sid}")
 
-# --- FLASK ROUTE AND MAIN EXECUTION ---
-@app.route('/')
-def index():
-    return render_template('index.html')
-
+# --- MAIN EXECUTION (for local testing) ---
 if __name__ == '__main__':
-    print("Starting Flask-SocketIO server with Groq...")
-    socketio.run(app, host='127.0.0.1', port=5000, debug=True, use_reloader=False)
+    print("Starting Flask-SocketIO server for local development...")
+    socketio.run(app, host='0.0.0.0', port=5000)

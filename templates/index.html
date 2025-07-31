@@ -11,37 +11,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 
     <style>
-        /* --- DARK THEME STYLES --- */
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #121212; /* Dark background */
-            color: #e0e0e0; /* Light text */
-            overflow: hidden;
-        }
-        .dashboard-container {
-            display: flex;
-            height: 100%;
-            width: 100%;
-        }
+        html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; overflow: hidden; }
+        .dashboard-container { display: flex; height: 100%; width: 100%; }
         
         .chat-panel {
             flex: 0 0 65%;
             display: flex;
             flex-direction: column;
-            background: #1e1e1e; /* Darker panel background */
-            border-right: 1px solid #3b4048;
+            background: #fff;
+            border-right: 1px solid #ddd;
             height: 100%;
         }
         .chat-panel h1 {
-            color: #ffffff;
-            text-align: center;
-            padding: 1rem;
-            margin: 0;
-            flex-shrink: 0;
-            border-bottom: 1px solid #3b4048;
+            color: #4a4a4a; text-align: center; padding: 1rem; margin: 0;
+            flex-shrink: 0; border-bottom: 1px solid #eee;
         }
         .conversation {
             flex-grow: 1;
@@ -50,12 +33,12 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            min-height: 0;
+            min-height: 0; 
         }
         .chat-footer {
             flex-shrink: 0;
-            border-top: 1px solid #3b4048;
-            background: #1e1e1e;
+            border-top: 1px solid #eee;
+            background: #fff;
         }
 
         .code-panel { flex: 0 0 35%; display: flex; flex-direction: column; background-color: #282c34; color: #abb2bf; }
@@ -63,33 +46,18 @@
         .code-panel pre { flex-grow: 1; margin: 0; padding: 1.5rem; white-space: pre-wrap; word-wrap: break-word; overflow-y: auto; }
         .code-panel code { font-family: 'Courier New', Courier, monospace; font-size: 1rem; }
         .message { padding: 1rem; border-radius: 8px; line-height: 1.6; max-width: 90%; word-wrap: break-word; }
-        .user {
-            background-color: #2a3942; /* Dark green/blue user bubble */
-            align-self: flex-end;
-        }
-        .ai {
-            background-color: #363636; /* Dark grey AI bubble */
-            align-self: flex-start;
-        }
+        .user { background-color: #dcf8c6; align-self: flex-end; }
+        .ai { background-color: #f1f0f0; align-self: flex-start; }
         .ai pre { background-color: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 5px; }
-        .label { font-weight: bold; margin-bottom: 0.5rem; display: block; color: #f1f1f1;}
-        
+        .label { font-weight: bold; margin-bottom: 0.5rem; display: block; }
         #text-input-form { display: flex; gap: 10px; padding: 1rem; }
-        #text-input {
-            flex-grow: 1;
-            padding: 12px;
-            border: 1px solid #444;
-            border-radius: 5px;
-            font-size: 16px;
-            background-color: #252525;
-            color: #e0e0e0;
-        }
+        #text-input { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; }
         #text-input-form button { background-color: #007bff; color: white; border: none; padding: 0 20px; font-size: 16px; border-radius: 5px; cursor: pointer; }
-        .audio-controls { text-align: center; padding: 0.5rem 1rem; background: #252525; border-bottom: 1px solid #3b4048; }
+        .audio-controls { text-align: center; padding: 0.5rem 1rem; background: #fafafa; border-bottom: 1px solid #eee; }
         .audio-controls button { font-size: 14px; padding: 8px 16px; }
-        .audio-controls button:disabled, #text-input-form button:disabled { background-color: #555; cursor: not-allowed; }
+        .audio-controls button:disabled, #text-input-form button:disabled { background-color: #ccc; cursor: not-allowed; }
         #stopBtn { background-color: #dc3545; }
-        #status { font-size: 0.9rem; color: #aaa; margin-top: 8px; }
+        #status { font-size: 0.9rem; color: #666; margin-top: 8px; }
         #status.listening { color: #28a745; font-weight: bold; }
         
         .show-code-btn { background-color: #5c6ac4; color: white; border: none; padding: 8px 12px; font-size: 14px; border-radius: 5px; cursor: pointer; margin-top: 10px; display: block; }
@@ -134,7 +102,6 @@
     </div>
 
     <script>
-        // --- ALL JAVASCRIPT IS UNCHANGED ---
         const socket = io({ transports: ['websocket'] });
         const conversationDiv = document.getElementById('conversation');
         const textInputForm = document.getElementById('text-input-form');
@@ -159,16 +126,13 @@
             recognition.interimResults = true;
             
             let finalTranscriptDebounce;
-
             recognition.onstart = () => { isListening = true; statusDiv.textContent = 'Listening...'; statusDiv.classList.add('listening'); startBtn.disabled = true; stopBtn.disabled = false; };
             recognition.onend = () => { if (isListening) { setTimeout(() => { try { recognition.start(); } catch(e) {} }, 50); } else { statusDiv.textContent = 'Voice input is off.'; statusDiv.classList.remove('listening'); startBtn.disabled = false; stopBtn.disabled = true; } };
             recognition.onerror = (event) => { console.error("Speech Recognition Error:", event.error); if(event.error !== 'no-speech') statusDiv.textContent = `Error: ${event.error}`; };
-            
             recognition.onresult = (event) => {
                 clearTimeout(finalTranscriptDebounce);
                 let interimTranscript = '';
                 let finalTranscript = '';
-
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
@@ -178,7 +142,6 @@
                     }
                 }
                 statusDiv.textContent = interimTranscript || 'Listening...';
-                
                 finalTranscriptDebounce = setTimeout(() => {
                     if (finalTranscript.trim()) {
                         sendMessageToServer(finalTranscript.trim());
@@ -224,18 +187,28 @@
             codeViewer.textContent = '# Code will appear here...';
             hljs.highlightElement(codeViewer);
             currentAiMessageElement = addMessageToUI('Mithun (AI)', '');
+            // Set the initial text to a cursor to show activity immediately
+            currentAiMessageElement.children[1].textContent = '█';
         });
 
+        // --- OPTIMIZED STREAMING ANIMATION ---
         socket.on('ai_stream', (token) => {
             if (currentAiMessageElement) {
-                accumulatedResponse += token;
-                currentAiMessageElement.children[1].innerHTML = marked.parse(accumulatedResponse + '█');
+                const textSpan = currentAiMessageElement.children[1];
+                // Remove the cursor, append the new text, and add the cursor back.
+                textSpan.textContent = textSpan.textContent.slice(0, -1) + token + '█';
             }
         });
 
         socket.on('ai_stream_end', () => {
             if (currentAiMessageElement) {
                 const textSpan = currentAiMessageElement.children[1];
+                // Get the final text content (without the cursor)
+                accumulatedResponse = textSpan.textContent.slice(0, -1);
+                
+                // Now, parse the full markdown ONCE at the end
+                textSpan.innerHTML = marked.parse(accumulatedResponse);
+
                 const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/;
                 const match = accumulatedResponse.match(codeBlockRegex);
                 const codeViewerIsVisible = window.getComputedStyle(codeViewer.parentElement).display !== 'none';
@@ -243,14 +216,14 @@
                 if (match) {
                     const language = match[1] || 'plaintext';
                     const code = match[2].trim();
-                    const explanation = accumulatedResponse.replace(match[0], '').trim();
-                    
                     if (codeViewerIsVisible) {
+                        const explanation = accumulatedResponse.replace(match[0], '').trim();
                         textSpan.innerHTML = marked.parse(explanation);
                         codeViewer.textContent = code;
                         codeViewer.className = `language-${language}`;
                         hljs.highlightElement(codeViewer);
                     } else {
+                        const explanation = accumulatedResponse.replace(match[0], '').trim();
                         textSpan.innerHTML = marked.parse(explanation);
                         const btn = document.createElement('button');
                         btn.className = 'show-code-btn';
@@ -264,7 +237,9 @@
                         textSpan.appendChild(btn);
                     }
                 } else {
-                    textSpan.innerHTML = marked.parse(accumulatedResponse);
+                    textSpan.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
                 }
             }
             enableInputs();
@@ -273,7 +248,6 @@
         socket.on('ai_is_busy', () => enableInputs());
 
         function disableInputs() { textInput.disabled = true; formButton.disabled = true; }
-        
         function enableInputs() {
             textInput.disabled = false;
             formButton.disabled = false;
