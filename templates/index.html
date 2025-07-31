@@ -11,20 +11,37 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 
     <style>
-        html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; overflow: hidden; }
-        .dashboard-container { display: flex; height: 100%; width: 100%; }
+        /* --- DARK THEME STYLES --- */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212; /* Dark background */
+            color: #e0e0e0; /* Light text */
+            overflow: hidden;
+        }
+        .dashboard-container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
         
         .chat-panel {
             flex: 0 0 65%;
             display: flex;
             flex-direction: column;
-            background: #fff;
-            border-right: 1px solid #ddd;
+            background: #1e1e1e; /* Darker panel background */
+            border-right: 1px solid #3b4048;
             height: 100%;
         }
         .chat-panel h1 {
-            color: #4a4a4a; text-align: center; padding: 1rem; margin: 0;
-            flex-shrink: 0; border-bottom: 1px solid #eee;
+            color: #ffffff;
+            text-align: center;
+            padding: 1rem;
+            margin: 0;
+            flex-shrink: 0;
+            border-bottom: 1px solid #3b4048;
         }
         .conversation {
             flex-grow: 1;
@@ -33,12 +50,12 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            min-height: 0; 
+            min-height: 0;
         }
         .chat-footer {
             flex-shrink: 0;
-            border-top: 1px solid #eee;
-            background: #fff;
+            border-top: 1px solid #3b4048;
+            background: #1e1e1e;
         }
 
         .code-panel { flex: 0 0 35%; display: flex; flex-direction: column; background-color: #282c34; color: #abb2bf; }
@@ -46,28 +63,40 @@
         .code-panel pre { flex-grow: 1; margin: 0; padding: 1.5rem; white-space: pre-wrap; word-wrap: break-word; overflow-y: auto; }
         .code-panel code { font-family: 'Courier New', Courier, monospace; font-size: 1rem; }
         .message { padding: 1rem; border-radius: 8px; line-height: 1.6; max-width: 90%; word-wrap: break-word; }
-        .user { background-color: #dcf8c6; align-self: flex-end; }
-        .ai { background-color: #f1f0f0; align-self: flex-start; }
+        .user {
+            background-color: #2a3942; /* Dark green/blue user bubble */
+            align-self: flex-end;
+        }
+        .ai {
+            background-color: #363636; /* Dark grey AI bubble */
+            align-self: flex-start;
+        }
         .ai pre { background-color: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 5px; }
-        .label { font-weight: bold; margin-bottom: 0.5rem; display: block; }
+        .label { font-weight: bold; margin-bottom: 0.5rem; display: block; color: #f1f1f1;}
+        
         #text-input-form { display: flex; gap: 10px; padding: 1rem; }
-        #text-input { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; }
+        #text-input {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            font-size: 16px;
+            background-color: #252525;
+            color: #e0e0e0;
+        }
         #text-input-form button { background-color: #007bff; color: white; border: none; padding: 0 20px; font-size: 16px; border-radius: 5px; cursor: pointer; }
-        .audio-controls { text-align: center; padding: 0.5rem 1rem; background: #fafafa; border-bottom: 1px solid #eee; }
+        .audio-controls { text-align: center; padding: 0.5rem 1rem; background: #252525; border-bottom: 1px solid #3b4048; }
         .audio-controls button { font-size: 14px; padding: 8px 16px; }
-        .audio-controls button:disabled, #text-input-form button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .audio-controls button:disabled, #text-input-form button:disabled { background-color: #555; cursor: not-allowed; }
         #stopBtn { background-color: #dc3545; }
-        #status { font-size: 0.9rem; color: #666; margin-top: 8px; }
+        #status { font-size: 0.9rem; color: #aaa; margin-top: 8px; }
         #status.listening { color: #28a745; font-weight: bold; }
-<<<<<<< HEAD
         
         .show-code-btn { background-color: #5c6ac4; color: white; border: none; padding: 8px 12px; font-size: 14px; border-radius: 5px; cursor: pointer; margin-top: 10px; display: block; }
         #code-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; box-sizing: border-box; }
         #code-overlay.hidden { display: none; }
         #code-overlay pre { background-color: #282c34; width: 100%; height: 90%; margin: 0; overflow-y: auto; border-radius: 8px; }
         #close-overlay-btn { position: absolute; top: 15px; right: 20px; background: none; border: none; color: white; font-size: 2.5rem; font-weight: bold; cursor: pointer; }
-=======
->>>>>>> parent of 92aa682 (updated some html codes)
 
         @media (max-width: 768px) {
             .dashboard-container { flex-direction: column; }
@@ -98,9 +127,15 @@
             <pre><code id="code-viewer" class="language-plaintext"># Code will appear here...</code></pre>
         </div>
     </div>
-    
+
+    <div id="code-overlay" class="hidden">
+        <button id="close-overlay-btn">&times;</button>
+        <pre><code id="overlay-code-content" class="language-plaintext"></code></pre>
+    </div>
+
     <script>
-        const socket = io();
+        // --- ALL JAVASCRIPT IS UNCHANGED ---
+        const socket = io({ transports: ['websocket'] });
         const conversationDiv = document.getElementById('conversation');
         const textInputForm = document.getElementById('text-input-form');
         const textInput = document.getElementById('text-input');
@@ -109,6 +144,9 @@
         const stopBtn = document.getElementById('stopBtn');
         const statusDiv = document.getElementById('status');
         const codeViewer = document.getElementById('code-viewer');
+        const codeOverlay = document.getElementById('code-overlay');
+        const closeOverlayBtn = document.getElementById('close-overlay-btn');
+        const overlayCodeContent = document.getElementById('overlay-code-content');
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
         let isListening = false;
@@ -117,29 +155,35 @@
 
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
-<<<<<<< HEAD
             recognition.continuous = true;
             recognition.interimResults = true;
             
             let finalTranscriptDebounce;
-=======
-            recognition.continuous = true; recognition.interimResults = true;
->>>>>>> parent of 92aa682 (updated some html codes)
+
             recognition.onstart = () => { isListening = true; statusDiv.textContent = 'Listening...'; statusDiv.classList.add('listening'); startBtn.disabled = true; stopBtn.disabled = false; };
             recognition.onend = () => { if (isListening) { setTimeout(() => { try { recognition.start(); } catch(e) {} }, 50); } else { statusDiv.textContent = 'Voice input is off.'; statusDiv.classList.remove('listening'); startBtn.disabled = false; stopBtn.disabled = true; } };
             recognition.onerror = (event) => { console.error("Speech Recognition Error:", event.error); if(event.error !== 'no-speech') statusDiv.textContent = `Error: ${event.error}`; };
-<<<<<<< HEAD
+            
             recognition.onresult = (event) => {
                 clearTimeout(finalTranscriptDebounce);
+                let interimTranscript = '';
                 let finalTranscript = '';
+
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
                     }
                 }
-                if (finalTranscript.trim()) {
-                    sendMessageToServer(finalTranscript.trim());
-                }
+                statusDiv.textContent = interimTranscript || 'Listening...';
+                
+                finalTranscriptDebounce = setTimeout(() => {
+                    if (finalTranscript.trim()) {
+                        sendMessageToServer(finalTranscript.trim());
+                    }
+                }, 400);
             };
         } else {
             document.querySelector('.audio-controls').innerHTML = '<p>Voice recognition not supported.</p>';
@@ -149,14 +193,6 @@
         stopBtn.addEventListener('click', () => { if(recognition){ isListening = false; recognition.stop(); } });
         textInputForm.addEventListener('submit', (e) => { e.preventDefault(); const text = textInput.value; if (text.trim() && !formButton.disabled) { sendMessageToServer(text); textInput.value = ''; } });
         closeOverlayBtn.addEventListener('click', () => codeOverlay.classList.add('hidden'));
-=======
-            recognition.onresult = (event) => { let finalTranscript = ''; for (let i = event.resultIndex; i < event.results.length; ++i) { if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript; } if (finalTranscript.trim()) sendMessageToServer(finalTranscript); };
-        } else { document.querySelector('.audio-controls').innerHTML = '<p>Voice recognition not supported.</p>'; }
-        
-        startBtn.addEventListener('click', () => { if(recognition){ isListening = true; recognition.start(); } });
-        stopBtn.addEventListener('click', () => { if(recognition){ isListening = false; recognition.stop(); } });
-        textInputForm.addEventListener('submit', (e) => { e.preventDefault(); const text = textInput.value; if (text.trim() && !formButton.disabled) { sendMessageToServer(text); textInput.value = ''; } });
->>>>>>> parent of 92aa682 (updated some html codes)
         
         function sendMessageToServer(text) {
             disableInputs();
@@ -165,7 +201,6 @@
             textInput.blur();
         }
         
-<<<<<<< HEAD
         function addMessageToUI(sender, text) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + (sender === 'You' ? 'user' : 'ai');
@@ -181,8 +216,6 @@
             return messageDiv;
         }
 
-=======
->>>>>>> parent of 92aa682 (updated some html codes)
         socket.on('connect', () => socket.emit('start_session'));
 
         socket.on('ai_stream_start', () => {
@@ -197,95 +230,53 @@
             if (currentAiMessageElement) {
                 accumulatedResponse += token;
                 currentAiMessageElement.children[1].innerHTML = marked.parse(accumulatedResponse + '█');
-                scrollToBottom();
             }
         });
 
         socket.on('ai_stream_end', () => {
             if (currentAiMessageElement) {
                 const textSpan = currentAiMessageElement.children[1];
-                
-                // --- THIS IS THE FINAL FIX FOR MOBILE CODE ---
-                // First, always render the full response in the main chat.
-                // This ensures code is NEVER trimmed on mobile.
-                textSpan.innerHTML = marked.parse(accumulatedResponse);
-                textSpan.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightElement(block);
-                });
-
-                // THEN, check if we are on desktop and have code.
-                const codeViewerIsVisible = window.getComputedStyle(codeViewer.parentElement).display !== 'none';
                 const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/;
                 const match = accumulatedResponse.match(codeBlockRegex);
+                const codeViewerIsVisible = window.getComputedStyle(codeViewer.parentElement).display !== 'none';
 
-                if (match && codeViewerIsVisible) {
-                    // If we are on desktop, ALSO populate the code viewer.
+                if (match) {
                     const language = match[1] || 'plaintext';
                     const code = match[2].trim();
-                    codeViewer.textContent = code;
-                    codeViewer.className = `language-${language}`;
-                    hljs.highlightElement(codeViewer);
+                    const explanation = accumulatedResponse.replace(match[0], '').trim();
+                    
+                    if (codeViewerIsVisible) {
+                        textSpan.innerHTML = marked.parse(explanation);
+                        codeViewer.textContent = code;
+                        codeViewer.className = `language-${language}`;
+                        hljs.highlightElement(codeViewer);
+                    } else {
+                        textSpan.innerHTML = marked.parse(explanation);
+                        const btn = document.createElement('button');
+                        btn.className = 'show-code-btn';
+                        btn.textContent = 'View Code';
+                        btn.onclick = () => {
+                            overlayCodeContent.textContent = code;
+                            overlayCodeContent.className = `language-${language}`;
+                            hljs.highlightElement(overlayCodeContent);
+                            codeOverlay.classList.remove('hidden');
+                        };
+                        textSpan.appendChild(btn);
+                    }
+                } else {
+                    textSpan.innerHTML = marked.parse(accumulatedResponse);
                 }
             }
             enableInputs();
         });
         
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> parent of 92aa682 (updated some html codes)
         socket.on('ai_is_busy', () => enableInputs());
-        
-        function addMessageToUI(sender, text) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message ' + (sender === 'You' ? 'user' : 'ai');
-            const labelSpan = document.createElement('span');
-            labelSpan.className = 'label';
-            labelSpan.textContent = sender + ':';
-            const textSpan = document.createElement('span');
-            textSpan.textContent = text;
-            messageDiv.appendChild(labelSpan);
-            messageDiv.appendChild(textSpan);
-            conversationDiv.prepend(messageDiv);
-            conversationDiv.scrollTop = 0;
-            return messageDiv;
-        }
 
         function disableInputs() { textInput.disabled = true; formButton.disabled = true; }
+        
         function enableInputs() {
             textInput.disabled = false;
             formButton.disabled = false;
-=======
-        function addMessageToUI(sender, text) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message ' + (sender === 'You' ? 'user' : 'ai');
-            const labelSpan = document.createElement('span');
-            labelSpan.className = 'label';
-            labelSpan.textContent = sender + ':';
-            const textSpan = document.createElement('span');
-            textSpan.textContent = text;
-            messageDiv.appendChild(labelSpan);
-            messageDiv.appendChild(textSpan);
-            conversationDiv.appendChild(messageDiv);
-            scrollToBottom();
-            return messageDiv;
-        }
-        
-        function scrollToBottom() {
-            const shouldScroll = conversationDiv.scrollHeight - conversationDiv.clientHeight <= conversationDiv.scrollTop + 100;
-            if (shouldScroll) {
-                conversationDiv.scrollTop = conversationDiv.scrollHeight;
-            }
-        }
-
-        function disableInputs() { textInput.disabled = true; formButton.disabled = true; }
-
-        // --- THIS IS THE ONLY CHANGE ---
-        function enableInputs() {
-            textInput.disabled = false;
-            formButton.disabled = false;
-            // The textInput.focus(); line has been removed.
->>>>>>> parent of c83e05d (chat ui improved)
         }
     </script>
 </body>
