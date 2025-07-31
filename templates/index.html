@@ -59,12 +59,15 @@
         #stopBtn { background-color: #dc3545; }
         #status { font-size: 0.9rem; color: #666; margin-top: 8px; }
         #status.listening { color: #28a745; font-weight: bold; }
+<<<<<<< HEAD
         
         .show-code-btn { background-color: #5c6ac4; color: white; border: none; padding: 8px 12px; font-size: 14px; border-radius: 5px; cursor: pointer; margin-top: 10px; display: block; }
         #code-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; box-sizing: border-box; }
         #code-overlay.hidden { display: none; }
         #code-overlay pre { background-color: #282c34; width: 100%; height: 90%; margin: 0; overflow-y: auto; border-radius: 8px; }
         #close-overlay-btn { position: absolute; top: 15px; right: 20px; background: none; border: none; color: white; font-size: 2.5rem; font-weight: bold; cursor: pointer; }
+=======
+>>>>>>> parent of 92aa682 (updated some html codes)
 
         @media (max-width: 768px) {
             .dashboard-container { flex-direction: column; }
@@ -95,14 +98,9 @@
             <pre><code id="code-viewer" class="language-plaintext"># Code will appear here...</code></pre>
         </div>
     </div>
-
-    <div id="code-overlay" class="hidden">
-        <button id="close-overlay-btn">&times;</button>
-        <pre><code id="overlay-code-content" class="language-plaintext"></code></pre>
-    </div>
-
+    
     <script>
-        const socket = io({ transports: ['websocket'] });
+        const socket = io();
         const conversationDiv = document.getElementById('conversation');
         const textInputForm = document.getElementById('text-input-form');
         const textInput = document.getElementById('text-input');
@@ -111,9 +109,6 @@
         const stopBtn = document.getElementById('stopBtn');
         const statusDiv = document.getElementById('status');
         const codeViewer = document.getElementById('code-viewer');
-        const codeOverlay = document.getElementById('code-overlay');
-        const closeOverlayBtn = document.getElementById('close-overlay-btn');
-        const overlayCodeContent = document.getElementById('overlay-code-content');
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
         let isListening = false;
@@ -122,13 +117,18 @@
 
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
+<<<<<<< HEAD
             recognition.continuous = true;
             recognition.interimResults = true;
             
             let finalTranscriptDebounce;
+=======
+            recognition.continuous = true; recognition.interimResults = true;
+>>>>>>> parent of 92aa682 (updated some html codes)
             recognition.onstart = () => { isListening = true; statusDiv.textContent = 'Listening...'; statusDiv.classList.add('listening'); startBtn.disabled = true; stopBtn.disabled = false; };
             recognition.onend = () => { if (isListening) { setTimeout(() => { try { recognition.start(); } catch(e) {} }, 50); } else { statusDiv.textContent = 'Voice input is off.'; statusDiv.classList.remove('listening'); startBtn.disabled = false; stopBtn.disabled = true; } };
             recognition.onerror = (event) => { console.error("Speech Recognition Error:", event.error); if(event.error !== 'no-speech') statusDiv.textContent = `Error: ${event.error}`; };
+<<<<<<< HEAD
             recognition.onresult = (event) => {
                 clearTimeout(finalTranscriptDebounce);
                 let finalTranscript = '';
@@ -149,6 +149,14 @@
         stopBtn.addEventListener('click', () => { if(recognition){ isListening = false; recognition.stop(); } });
         textInputForm.addEventListener('submit', (e) => { e.preventDefault(); const text = textInput.value; if (text.trim() && !formButton.disabled) { sendMessageToServer(text); textInput.value = ''; } });
         closeOverlayBtn.addEventListener('click', () => codeOverlay.classList.add('hidden'));
+=======
+            recognition.onresult = (event) => { let finalTranscript = ''; for (let i = event.resultIndex; i < event.results.length; ++i) { if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript; } if (finalTranscript.trim()) sendMessageToServer(finalTranscript); };
+        } else { document.querySelector('.audio-controls').innerHTML = '<p>Voice recognition not supported.</p>'; }
+        
+        startBtn.addEventListener('click', () => { if(recognition){ isListening = true; recognition.start(); } });
+        stopBtn.addEventListener('click', () => { if(recognition){ isListening = false; recognition.stop(); } });
+        textInputForm.addEventListener('submit', (e) => { e.preventDefault(); const text = textInput.value; if (text.trim() && !formButton.disabled) { sendMessageToServer(text); textInput.value = ''; } });
+>>>>>>> parent of 92aa682 (updated some html codes)
         
         function sendMessageToServer(text) {
             disableInputs();
@@ -157,6 +165,7 @@
             textInput.blur();
         }
         
+<<<<<<< HEAD
         function addMessageToUI(sender, text) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ' + (sender === 'You' ? 'user' : 'ai');
@@ -172,6 +181,8 @@
             return messageDiv;
         }
 
+=======
+>>>>>>> parent of 92aa682 (updated some html codes)
         socket.on('connect', () => socket.emit('start_session'));
 
         socket.on('ai_stream_start', () => {
@@ -193,42 +204,52 @@
         socket.on('ai_stream_end', () => {
             if (currentAiMessageElement) {
                 const textSpan = currentAiMessageElement.children[1];
+                
+                // --- THIS IS THE FINAL FIX FOR MOBILE CODE ---
+                // First, always render the full response in the main chat.
+                // This ensures code is NEVER trimmed on mobile.
+                textSpan.innerHTML = marked.parse(accumulatedResponse);
+                textSpan.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+
+                // THEN, check if we are on desktop and have code.
+                const codeViewerIsVisible = window.getComputedStyle(codeViewer.parentElement).display !== 'none';
                 const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/;
                 const match = accumulatedResponse.match(codeBlockRegex);
-                const codeViewerIsVisible = window.getComputedStyle(codeViewer.parentElement).display !== 'none';
 
-                if (match) {
+                if (match && codeViewerIsVisible) {
+                    // If we are on desktop, ALSO populate the code viewer.
                     const language = match[1] || 'plaintext';
                     const code = match[2].trim();
-                    const explanation = accumulatedResponse.replace(match[0], '').trim();
-                    
-                    if (codeViewerIsVisible) {
-                        textSpan.innerHTML = marked.parse(explanation);
-                        codeViewer.textContent = code;
-                        codeViewer.className = `language-${language}`;
-                        hljs.highlightElement(codeViewer);
-                    } else {
-                        textSpan.innerHTML = marked.parse(explanation);
-                        const btn = document.createElement('button');
-                        btn.className = 'show-code-btn';
-                        btn.textContent = 'View Code';
-                        btn.onclick = () => {
-                            overlayCodeContent.textContent = code;
-                            overlayCodeContent.className = `language-${language}`;
-                            hljs.highlightElement(overlayCodeContent);
-                            codeOverlay.classList.remove('hidden');
-                        };
-                        textSpan.appendChild(btn);
-                    }
-                } else {
-                    textSpan.innerHTML = marked.parse(accumulatedResponse);
+                    codeViewer.textContent = code;
+                    codeViewer.className = `language-${language}`;
+                    hljs.highlightElement(codeViewer);
                 }
             }
             enableInputs();
         });
         
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 92aa682 (updated some html codes)
         socket.on('ai_is_busy', () => enableInputs());
+        
+        function addMessageToUI(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (sender === 'You' ? 'user' : 'ai');
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'label';
+            labelSpan.textContent = sender + ':';
+            const textSpan = document.createElement('span');
+            textSpan.textContent = text;
+            messageDiv.appendChild(labelSpan);
+            messageDiv.appendChild(textSpan);
+            conversationDiv.prepend(messageDiv);
+            conversationDiv.scrollTop = 0;
+            return messageDiv;
+        }
 
         function disableInputs() { textInput.disabled = true; formButton.disabled = true; }
         function enableInputs() {

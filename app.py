@@ -11,7 +11,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'a-very-secret-key-for-sessions'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# --- AI PERSONA AND PROMPT CONFIG ---
+# --- UPDATED AI PERSONA AND PROMPT CONFIG ---
 resume_summary = """
 Mithun Raj M R, aspiring software developer. Proficient in Python, Flask, React, MySQL, ML (ASL detection), 
 internships at AuMDS (led full-stack projects), Varcons (web dev), and strong problem-solving skills.
@@ -39,7 +39,6 @@ model = ChatGroq(model_name="llama3-8b-8192", temperature=0.7)
 # --- State Management ---
 user_contexts = {}
 user_busy_state = {}
-
 
 # --- SOCKET.IO EVENT HANDLERS ---
 @socketio.on('connect')
