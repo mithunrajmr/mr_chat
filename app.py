@@ -1,6 +1,3 @@
-import eventlet
-eventlet.monkey_patch()
-
 import os
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO
@@ -12,7 +9,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'a-very-secret-key-for-sessions'
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # --- AI PERSONA AND PROMPT CONFIG ---
 resume_summary = """
@@ -28,9 +25,12 @@ You are Mithun Raj M R, a software developer. Your task is to answer interview q
 - When asked for code, present it naturally. For example: "Certainly. I would solve that using the Euclidean algorithm. Here's how I'd write it:"
 - Always generate code in Python unless the user explicitly asks for a different language.
 - Base all technical and project-related answers on the summary below.
+
 **Conversation History (most recent turns):**
 {context}
+
 **Interviewer's Question:** {question}
+
 **Your Answer (as Mithun):**
 """
 prompt_template = ChatPromptTemplate.from_template(template)
@@ -40,9 +40,6 @@ model = ChatGroq(model_name="llama3-8b-8192", temperature=0.7)
 user_contexts = {}
 user_busy_state = {}
 
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 # --- SOCKET.IO EVENT HANDLERS ---
 @socketio.on('connect')
@@ -65,9 +62,6 @@ def handle_user_message(data):
         return
     if not transcript: return
     print(f"Received transcript from {sid}: {transcript}")
-    
-    # --- THIS IS THE KEY CHANGE ---
-    # The entire AI generation process is now a background task.
     socketio.start_background_task(stream_ai_response, transcript, sid)
 
 @socketio.on('disconnect')
@@ -93,7 +87,6 @@ def stream_ai_response(user_question, sid):
         
         socketio.emit('ai_stream_start', to=sid)
         full_ai_response = ""
-        # The model.stream call is the "blocking" function
         for token in model.stream(formatted_prompt):
             content = token.content
             socketio.emit('ai_stream', content, to=sid)
@@ -101,6 +94,7 @@ def stream_ai_response(user_question, sid):
             
         history.append((user_question, full_ai_response))
         user_contexts[sid] = history[-5:]
+
         print(f"[AI] Full response generated for {sid}")
 
     except Exception as e:
@@ -110,8 +104,11 @@ def stream_ai_response(user_question, sid):
         user_busy_state[sid] = False
         print(f"Session lock released for {sid}")
 
-# --- MAIN EXECUTION ---
+# --- FLASK ROUTE AND MAIN EXECUTION ---
+@app.route('/')
+def index():
+    return render_template('index.html')
+
 if __name__ == '__main__':
-    print("Starting Flask-SocketIO server for local development...")
-    # This command is for running on your local machine
-    socketio.run(app, host='0.0.0.0', port=5000)
+    print("Starting Flask-SocketIO server with Groq...")
+    socketio.run(app, host='127.0.0.1', port=5000, debug=True, use_reloader=False)

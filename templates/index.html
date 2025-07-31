@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 
     <style>
-        /* All CSS is the same */
         html, body { height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; overflow: hidden; }
         .dashboard-container { display: flex; height: 100%; width: 100%; }
         
@@ -34,7 +33,7 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            min-height: 0;
+            min-height: 0; 
         }
         .chat-footer {
             flex-shrink: 0;
@@ -97,7 +96,10 @@
         </div>
     </div>
 
-    <div id="code-overlay" class="hidden"></div>
+    <div id="code-overlay" class="hidden">
+        <button id="close-overlay-btn">&times;</button>
+        <pre><code id="overlay-code-content" class="language-plaintext"></code></pre>
+    </div>
 
     <script>
         const socket = io({ transports: ['websocket'] });
@@ -125,42 +127,19 @@
             
             let finalTranscriptDebounce;
             recognition.onstart = () => { isListening = true; statusDiv.textContent = 'Listening...'; statusDiv.classList.add('listening'); startBtn.disabled = true; stopBtn.disabled = false; };
-            
-            // --- THIS IS THE KEY CHANGE ---
-            // The delay is now much shorter for a near-instant restart.
-            recognition.onend = () => {
-                if (isListening) {
-                    setTimeout(() => {
-                        try { recognition.start(); } catch (e) { console.error("Error restarting recognition:", e); }
-                    }, 50); // Reduced delay from 250ms to 50ms
-                } else {
-                    statusDiv.textContent = 'Voice input is off.';
-                    statusDiv.classList.remove('listening');
-                    startBtn.disabled = false;
-                    stopBtn.disabled = true;
-                }
-            };
-            
+            recognition.onend = () => { if (isListening) { setTimeout(() => { try { recognition.start(); } catch(e) {} }, 50); } else { statusDiv.textContent = 'Voice input is off.'; statusDiv.classList.remove('listening'); startBtn.disabled = false; stopBtn.disabled = true; } };
             recognition.onerror = (event) => { console.error("Speech Recognition Error:", event.error); if(event.error !== 'no-speech') statusDiv.textContent = `Error: ${event.error}`; };
-            
             recognition.onresult = (event) => {
                 clearTimeout(finalTranscriptDebounce);
-                let interimTranscript = '';
                 let finalTranscript = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
-                        finalTranscript += transcript;
-                    } else {
-                        interimTranscript += transcript;
+                        finalTranscript += event.results[i][0].transcript;
                     }
                 }
-                statusDiv.textContent = interimTranscript || 'Listening...';
-                finalTranscriptDebounce = setTimeout(() => {
-                    if (finalTranscript.trim()) {
-                        sendMessageToServer(finalTranscript.trim());
-                    }
-                }, 400);
+                if (finalTranscript.trim()) {
+                    sendMessageToServer(finalTranscript.trim());
+                }
             };
         } else {
             document.querySelector('.audio-controls').innerHTML = '<p>Voice recognition not supported.</p>';
@@ -216,10 +195,12 @@
                 const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/;
                 const match = accumulatedResponse.match(codeBlockRegex);
                 const codeViewerIsVisible = window.getComputedStyle(codeViewer.parentElement).display !== 'none';
+
                 if (match) {
                     const language = match[1] || 'plaintext';
                     const code = match[2].trim();
                     const explanation = accumulatedResponse.replace(match[0], '').trim();
+                    
                     if (codeViewerIsVisible) {
                         textSpan.innerHTML = marked.parse(explanation);
                         codeViewer.textContent = code;
