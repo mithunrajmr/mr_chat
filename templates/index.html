@@ -186,6 +186,7 @@
             if (currentAiMessageElement) {
                 accumulatedResponse += token;
                 currentAiMessageElement.children[1].innerHTML = marked.parse(accumulatedResponse + '█');
+                scrollToBottom();
             }
         });
 
@@ -226,12 +227,44 @@
             enableInputs();
         });
         
+<<<<<<< HEAD
         socket.on('ai_is_busy', () => enableInputs());
 
         function disableInputs() { textInput.disabled = true; formButton.disabled = true; }
         function enableInputs() {
             textInput.disabled = false;
             formButton.disabled = false;
+=======
+        function addMessageToUI(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (sender === 'You' ? 'user' : 'ai');
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'label';
+            labelSpan.textContent = sender + ':';
+            const textSpan = document.createElement('span');
+            textSpan.textContent = text;
+            messageDiv.appendChild(labelSpan);
+            messageDiv.appendChild(textSpan);
+            conversationDiv.appendChild(messageDiv);
+            scrollToBottom();
+            return messageDiv;
+        }
+        
+        function scrollToBottom() {
+            const shouldScroll = conversationDiv.scrollHeight - conversationDiv.clientHeight <= conversationDiv.scrollTop + 100;
+            if (shouldScroll) {
+                conversationDiv.scrollTop = conversationDiv.scrollHeight;
+            }
+        }
+
+        function disableInputs() { textInput.disabled = true; formButton.disabled = true; }
+
+        // --- THIS IS THE ONLY CHANGE ---
+        function enableInputs() {
+            textInput.disabled = false;
+            formButton.disabled = false;
+            // The textInput.focus(); line has been removed.
+>>>>>>> parent of c83e05d (chat ui improved)
         }
     </script>
 </body>
