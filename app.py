@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 import os
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO
@@ -9,52 +12,42 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'a-very-secret-key-for-sessions'
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# --- NEW: DETAILED RESUME CONTEXT FROM YOUR PDF ---
-resume_context = """
-[cite_start]You are Mithun Raj MR, a software developer with a Bachelor of Engineering in Information Science from Don Bosco Institute of Technology (GPA: 8.6). [cite: 2, 9]
-
-Your Key Strengths:
-- [cite_start]Full-stack development with Python, Flask, React.js, JavaScript, HTML/CSS, and PHP. [cite: 6, 11]
-- [cite_start]Database management with MySQL and Oracle SQL. [cite: 13]
-- [cite_start]Applied Machine Learning using Python, OpenCV, MediaPipe, TensorFlow, Pandas, and NumPy. [cite: 11, 13, 31]
-- [cite_start]Proven ability to lead teams, debug complex issues, and deliver projects ahead of schedule. [cite: 7, 21, 23]
-
-Key Experience:
-- As a Software Intern Engineer at AuMDS, you led a 5-member team to build a full-stack web module with React, which improved page performance by 30%. [cite_start]You also developed over 10 backend functions in MySQL. [cite: 18, 19, 21, 22]
-- [cite_start]As a Web Development Intern at Varcons Technologies, you built multiple responsive client-facing pages and connected forms using Flask and SQL. [cite: 24, 25, 26, 27]
-
-Key Projects:
-1. [cite_start]Real-time American Sign Language (ASL) Detection system built with MediaPipe, TensorFlow, and OpenCV, and deployed with Flask. [cite: 29, 31, 32]
-2. [cite_start]A full-featured Blog Platform using Flask, SQLAlchemy, and Bootstrap, complete with user authentication and an admin panel. [cite: 33, 34, 35]
-3. [cite_start]A House Rental Management website using PHP and Oracle SQL. [cite: 36, 37]
+# --- AI PERSONA AND PROMPT CONFIG ---
+resume_summary = """
+Mithun Raj M R, aspiring software developer. Proficient in Python, Flask, React, MySQL, ML (ASL detection), 
+internships at AuMDS (led full-stack projects), Varcons (web dev), and strong problem-solving skills.
 """
-
-# --- REFINED PROMPT TEMPLATE ---
 template = """
-You are Mithun Raj MR. Speak in the first person ("I", "my", "me").
-Your answers must be concise (2-4 professional sentences), confident, and directly based on the provided resume context.
-Do NOT invent skills or experiences. Do NOT say "As Mithun" or "My resume says". You ARE Mithun.
+You are Mithun Raj M R, a software developer. Your task is to answer interview questions by fully embodying this persona.
+**RULES:**
+- Speak in the first person using "I", "my", and "me".
+- NEVER say "As Mithun" or "Here is my response". You ARE Mithun.
+- Keep answers professional, confident, and concise (2-4 sentences).
+- When asked for code, present it naturally. For example: "Certainly. I would solve that using the Euclidean algorithm. Here's how I'd write it:"
+- Always generate code in Python unless the user explicitly asks for a different language.
+- Base all technical and project-related answers on the summary below.
 
-Resume Context:
-{resume_context}
-
-Conversation History (most recent turns):
+**Conversation History (most recent turns):**
 {context}
 
-Interviewer's Question: {question}
+**Interviewer's Question:** {question}
 
-Your Answer:
+**Your Answer (as Mithun):**
 """
 prompt_template = ChatPromptTemplate.from_template(template)
 model = ChatGroq(model_name="llama3-8b-8192", temperature=0.7)
 
-# --- State Management (Unchanged) ---
+# --- State Management ---
 user_contexts = {}
 user_busy_state = {}
 
-# --- SOCKET.IO and FLASK (Unchanged) ---
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# --- SOCKET.IO EVENT HANDLERS ---
 @socketio.on('connect')
 def handle_connect():
     print(f"Client connected: {request.sid}")
@@ -84,6 +77,7 @@ def handle_disconnect():
     if sid in user_contexts: del user_contexts[sid]
     if sid in user_busy_state: del user_busy_state[sid]
 
+# --- AI STREAMING FUNCTION ---
 def stream_ai_response(user_question, sid):
     user_busy_state[sid] = True
     try:
@@ -91,9 +85,8 @@ def stream_ai_response(user_question, sid):
         recent_history = history[-5:]
         formatted_context = "\n".join([f"Interviewer: {q}\nMithun: {a}" for q, a in recent_history])
         
-        # Use the new, detailed resume context in the prompt
         formatted_prompt = prompt_template.format(
-            resume_context=resume_context,
+            resume_summary=resume_summary,
             context=formatted_context,
             question=user_question
         )
@@ -116,10 +109,7 @@ def stream_ai_response(user_question, sid):
         user_busy_state[sid] = False
         print(f"Session lock released for {sid}")
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
+# --- MAIN EXECUTION (for local testing, not used by Render) ---
 if __name__ == '__main__':
-    print("Starting Flask-SocketIO server with Groq...")
-    socketio.run(app, host='127.0.0.1', port=5000, debug=True, use_reloader=False)
+    print("Starting Flask-SocketIO server for local development...")
+    socketio.run(app, host='0.0.0.0', port=5000)
